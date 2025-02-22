@@ -1,33 +1,9 @@
----
-title: Streamlit
-emoji: 🔥
-colorFrom: indigo
-colorTo: green
-sdk: streamlit
-sdk_version: 1.42.2
-app_file: main.py
-pinned: true
-license: mit
----
-
 # Medicine Agents
 
 This repo contains the code to run multi-agent system.
 
 
 ## Running the code
-
-### Building the Docker image
-
-```bash
-docker build -t medicine-agents .
-```
-
-### Running the Docker image
-
-```bash
-docker run --rm -e GROQ_API_KEY=$GROQ_API_KEY -p 8501:8501 medicine-agents
-```
 
 ## Deploying
 
@@ -40,8 +16,9 @@ docker run --rm -e GROQ_API_KEY=$GROQ_API_KEY -p 8501:8501 medicine-agents
 - Branch is `main`
 - Main file path is `main.py`
 - Set the App URL you want
-- Click Advanced settings
-    - Set "GROQ_API_KEY"= YOUR GROQ API KEY
+- IMPORTANT: In main.py, go to line 43 and replace
+- ```python
+  client = Groq(api_key="ENTER_YOUR_OWN_API_KEY")
 - Click save
 - Click Deploy
 
