@@ -3,8 +3,6 @@
 This repo contains the code to run multi-agent system.
 
 
-## Running the code
-
 ## Deploying
 
 - Go to [Groq console](https://console.groq.com/playground) and register for an account and create a free API key
