@@ -5,21 +5,21 @@ This repo contains the code to run multi-agent system.
 
 ## Deploying
 
-- Go to [Groq console](https://console.groq.com/playground) and register for an account and create a free API key
-- Fork the repo on GitHub
-- On [Streamlit](https://share.streamlit.io) and sign in with GitHub
-- On the top right corner click Create App
-- Click Deploy a public app from GitHub
-- Select the repo from your account
-- Branch is `main`
-- Main file path is `main.py`
-- Set the App URL you want
-- IMPORTANT: In main.py, go to line 43 and replace
+- Go to [Groq console](https://console.groq.com/playground) and register for an account. Create a free API key.
+- Fork the repo on GitHub.
+- Go to [Streamlit](https://share.streamlit.io) and sign in with GitHub.
+- In the top right corner, click Create App.
+- Click Deploy a public app from GitHub.
+- Select the repo from your account.
+- Branch is `main`.
+- Main file path is `main.py`.
+- Set the App URL you want.
+- IMPORTANT: In main.py, go to line 43 and enter your own Groq API Key in the line below:
  ```python
   client = Groq(api_key="ENTER_YOUR_OWN_API_KEY")
 ```
-- Click save
-- Click Deploy
+- Click save.
+- Click Deploy.
 
 
 ## Creating the database to run
