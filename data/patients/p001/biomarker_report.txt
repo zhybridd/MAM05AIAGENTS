@@ -1,0 +1,11 @@
+Patient Name: John Doe
+MRN: 123456
+Test Date: October 12, 2023
+Sample Type: Tumor tissue (CT-guided biopsy of lung mass)
+
+Molecular Findings:
+    EGFR Mutation: Exon 19 deletion detected (sensitizing mutation).
+    T790M Mutation: Not detected.
+    ALK Rearrangement: Negative.
+    ROS1 Rearrangement: Negative.
+    PD-L1 Expression: Low (TPS 5%).
