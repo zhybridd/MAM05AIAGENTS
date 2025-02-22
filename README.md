@@ -17,8 +17,9 @@ This repo contains the code to run multi-agent system.
 - Main file path is `main.py`
 - Set the App URL you want
 - IMPORTANT: In main.py, go to line 43 and replace
-- ```python
+ ```python
   client = Groq(api_key="ENTER_YOUR_OWN_API_KEY")
+```
 - Click save
 - Click Deploy
 
