@@ -38,7 +38,7 @@ model_name = "deepseek-r1-distill-qwen-32b"
 @dataclass(frozen=True)
 class MedicalAgent(Agent):
     model_name: str  # Model name for the LLM
-    client = Groq(api_key="your-api-key")  # API client for interacting with the Groq AI model
+    client = Groq(api_key="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")  # API client for interacting with the Groq AI model
 
     # Function to execute the agent's task using AI
     def run(self, context: ExecutionContext) -> str:
