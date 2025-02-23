@@ -1,50 +1,52 @@
-from datetime import datetime  # Used for logging timestamps
-import tempfile  # Used for handling temporary file storage
-from dataclasses import dataclass  # Used for defining structured data objects
+from datetime import datetime
+import tempfile
+from dataclasses import dataclass
 
-from groq import Groq  # API client for AI model execution
-import streamlit as st  # Used to build the web interface
-from dotenv import load_dotenv  # Loads environment variables
+from groq import Groq
+import streamlit as st
+from dotenv import load_dotenv
 
-from graph import Graph, Agent, ExecutionContext, Prompt  # Imports graph execution model
+# Importing custom modules that handle AI agent execution and utilities
+from graph import Graph, Agent, ExecutionContext, Prompt
 from utils import (
-    get_think_tag,  # Extracts think tags from AI responses
-    remove_think_tag,  # Cleans AI responses
-    load_patient_data_from_sqlite_file,  # Loads patient data from database
-    load_prompts,  # Loads AI prompts from YAML files
+    get_think_tag,
+    remove_think_tag,
+    load_patient_data_from_sqlite_file,
+    load_prompts,
 )
 
-# Configures the Streamlit web page layout and metadata
+# Set up the Streamlit web interface configuration
 st.set_page_config(
-    layout="wide",
-    page_title="UVA Bot 🤖",
-    page_icon=":dna:",
+    layout="wide",  # Expands the interface to full width
+    page_title="UVA Bot 🤖",  # Sets the webpage title
+    page_icon=":dna:",  # Uses a DNA emoji as the favicon
 )
 
-# Initializes a log in the session state if it doesn't already exist
+# Initialize session state logs if not present
 if "logs" not in st.session_state:
     st.session_state.logs = []
 
-# Function to add logs with timestamps
+# Function to log messages with timestamps
 def log(message):
     time = datetime.now().strftime("%H:%M:%S")
     st.session_state.logs.append(f"[{time}] {message}")
 
-# Defines the AI model being used
+# Define the AI model to be used
 model_name = "deepseek-r1-distill-qwen-32b"
 
-# Defines the AI agent class, which interacts with the AI model
+# Define an AI agent class that extends the generic Agent class
 @dataclass(frozen=True)
 class MedicalAgent(Agent):
-    model_name: str  # AI model name
-    client = Groq(api_key="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")  # API client
+    model_name: str  # Model name for the LLM
+    client = Groq(api_key="your-api-key")  # API client for interacting with the Groq AI model
 
+    # Function to execute the agent's task using AI
     def run(self, context: ExecutionContext) -> str:
-        log(f"Running {self.name}")
-        prompt = self._prepare_prompt(context)  # Prepares the AI prompt
+        log(f"Running {self.name}")  # Log execution start
+        prompt = self._prepare_prompt(context)  # Prepare AI prompt
         log(f"{self.name} Prompt: {prompt}")
-        
-        # Sends prompt to the AI model
+
+        # Call the AI model to generate a response
         chat_completion = self.client.chat.completions.create(
             messages=[
                 {
@@ -53,49 +55,51 @@ class MedicalAgent(Agent):
                 }
             ],
             model=self.model_name,
-            temperature=0.0,
+            temperature=0.0,  # Ensure deterministic output
             top_p=1.0,
             seed=0,
         )
 
-        answer = chat_completion.choices[0].message.content  # Extracts AI response
-        think_tag = get_think_tag(answer)  # Extracts think tags if present
+        # Extract AI-generated response
+        answer = chat_completion.choices[0].message.content
+        think_tag = get_think_tag(answer)  # Extract thought process tags (if any)
         log(f"{self.name} Think Tag: {think_tag}")
-        cleaned_answer = remove_think_tag(answer)  # Cleans AI response
+        cleaned_answer = remove_think_tag(answer)  # Remove AI internal thoughts
         log(f"{self.name} Response: {cleaned_answer}")
-        context.set(self.name, cleaned_answer)  # Stores the result in execution context
+        context.set(self.name, cleaned_answer)  # Store the AI response in execution context
         return context
 
-# Defines a structured object to store results
-dataclass
+# Dataclass to store structured AI-generated reports
+@dataclass
 class RunResult:
     biomarker_report: str
     imaging_report: str
     pathology_report: str
     oncologist_report: str
 
-# Main function to run the Streamlit application
+# Main function to orchestrate AI execution
 def main():
-    load_dotenv()  # Loads API keys and other environment variables
-    crew_prompts = load_prompts()  # Loads AI agent prompts
+    load_dotenv()  # Load environment variables
+    crew_prompts = load_prompts()  # Load AI prompts from YAML files
 
-    # Function to create an AI agent instance
-def agent(name: str, prompt: Prompt) -> MedicalAgent:
+    # Helper function to create an AI agent
+    def agent(name: str, prompt: Prompt) -> MedicalAgent:
         return MedicalAgent(name=name, model_name=model_name, prompt=prompt)
 
-    patient_id_to_patient = {}  # Dictionary to store patient data
+    # Dictionary to store patient data
+    patient_id_to_patient = {}
 
-    # Function to process a specific patient
-def run_patient(patient_id: str) -> RunResult:
-        patient = patient_id_to_patient[patient_id]  # Retrieves patient data
-        context = ExecutionContext()  # Creates an execution context
-
-        # Stores patient reports in the execution context
+    # Function to process patient data and execute AI agents
+    def run_patient(patient_id: str) -> RunResult:
+        patient = patient_id_to_patient[patient_id]  # Retrieve patient data
+        context = ExecutionContext()
+        
+        # Set patient reports in execution context
         context.set("BiomarkersReport", patient.biomarker_report)
         context.set("ImagingReport", patient.imaging_report)
         context.set("PathologyReport", patient.pathology_report)
 
-        # Defines the AI processing pipeline as a graph
+        # Define the graph structure for AI agent execution
         graph = Graph.from_nodes(
             nodes={
                 agent("biomarkers", crew_prompts.biomarker),
@@ -104,15 +108,15 @@ def run_patient(patient_id: str) -> RunResult:
                 agent("oncologist", crew_prompts.oncologist),
             },
             edges={
-                "biomarkers -> oncologist",
-                "imaging -> oncologist",
-                "pathology -> oncologist",
+                "biomarkers -> oncologist",  # Biomarker results feed into the oncologist
+                "imaging -> oncologist",  # Imaging results feed into the oncologist
+                "pathology -> oncologist",  # Pathology results feed into the oncologist
             },
         )
 
-        result = graph.run(context)  # Executes AI agents
+        result = graph.run(context)  # Execute AI processing graph
 
-        # Stores the final AI-generated reports
+        # Collect the AI-generated reports
         run_result = RunResult(
             biomarker_report=result.get("biomarkers"),
             imaging_report=result.get("imaging"),
@@ -121,22 +125,27 @@ def run_patient(patient_id: str) -> RunResult:
         )
         return run_result
 
-    # UI Elements
+    # Sidebar UI setup
     st.sidebar.title(":orange[__UVA Bot__] 🤖")
 
+    # File uploader for patient database
     uploaded_file = st.sidebar.file_uploader("Choose a file")
     if uploaded_file is not None:
         with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
             tmp_file.write(uploaded_file.read())
-            db_path = tmp_file.name
+            db_path = tmp_file.name  # Get the file path of the uploaded database
+
             patient_id_to_patient = load_patient_data_from_sqlite_file(db_path)
 
+        # Display patient selection dropdown
         patient_ids = list(patient_id_to_patient.keys())
         patient_id = st.sidebar.selectbox("Select Patient ID", patient_ids)
         patient = patient_id_to_patient[patient_id]
 
-        # Display patient reports
-        tab1, tab2, tab3 = st.tabs(["Biomarkers Report", "Imaging Report", "Pathology Report"])
+        # Create tabs to display different patient reports
+        tab1, tab2, tab3 = st.tabs([
+            "Biomarkers Report", "Imaging Report", "Pathology Report"
+        ])
 
         with tab1:
             st.text(patient.biomarker_report)
@@ -147,12 +156,15 @@ def run_patient(patient_id: str) -> RunResult:
 
         st.divider()
 
-        # Button to start AI processing
+        # Submit button to process patient data
         submit = st.sidebar.button("Submit")
         if submit:
-            run_result = run_patient(patient_id)
-            t1, t2, t3, t4, t5 = st.tabs(["Biomarkers", "Imaging", "Pathology", "Oncologist", "Logs"])
+            run_result = run_patient(patient_id)  # Run AI analysis
+            t1, t2, t3, t4, t5 = st.tabs([
+                "Biomarkers", "Imaging", "Pathology", "Oncologist", "Logs"
+            ])
 
+            # Display AI-generated reports in respective tabs
             with t1:
                 st.markdown(run_result.biomarker_report)
             with t2:
@@ -161,6 +173,8 @@ def run_patient(patient_id: str) -> RunResult:
                 st.markdown(run_result.pathology_report)
             with t4:
                 st.markdown(run_result.oncologist_report)
+            
+            # Display AI logs
             with t5:
                 for i, log_message in enumerate(st.session_state.logs):
                     with st.expander(log_message.splitlines()[0]):
@@ -168,5 +182,6 @@ def run_patient(patient_id: str) -> RunResult:
                     if i != 0 and i % 3 == 0:
                         st.divider()
 
+# Execute the main function if script is run directly
 if __name__ == "__main__":
-    main()  # Runs the main function
+    main()
